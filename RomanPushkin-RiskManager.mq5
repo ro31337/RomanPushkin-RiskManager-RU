@@ -1,4 +1,4 @@
-п»ї//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|                                     RomanPushkin-RiskManager.mq5 |
 //|                                    Copyright 2013, Roman Pushkin |
 //|                                              http://www.mql5.com |
@@ -7,9 +7,9 @@
 #property link      "http://www.mql5.com"
 #property version   "1.00"
 
-input int __SecondsWait = 3; // РљРѕР»РёС‡РµСЃС‚РІРѕ СЃРµРєСѓРЅРґ, РїРѕСЃР»Рµ РєРѕС‚РѕСЂС‹С… СѓСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ СЃС‚РѕРї РѕС‚ С‚РµРєСѓС‰РµР№ С†РµРЅС‹, РµСЃР»Рё РѕРЅ РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ
-input int __StopSize = 150; // РЎС‚РѕРї РІ РїСѓРЅРєС‚Р°С… РѕС‚ С‚РµРєСѓС‰РµР№ С†РµРЅС‹
-input int __Deviation = 700; // РџСЂРѕСЃРєР°Р»СЊР·С‹РІР°РЅРёРµ (Deviation)
+input int __SecondsWait = 3; // Количество секунд, после которых устанавливать стоп от текущей цены, если он не установлен
+input int __StopSize = 150; // Стоп в пунктах от текущей цены
+input int __Deviation = 700; // Проскальзывание (Deviation)
 
 enum StrategyState { STATE_LOOK_FOR_POSITION, STATE_WAIT_FOR_STOP, STATE_SET_STOP };
 
@@ -20,7 +20,7 @@ enum StrategyState { STATE_LOOK_FOR_POSITION, STATE_WAIT_FOR_STOP, STATE_SET_STO
 int OnInit()
 {
    EventSetTimer(1);
-   Print("OK РџСЂРѕРІРµСЂСЏРµРј РєР°Р¶РґС‹Рµ " + __SecondsWait + " СЃРµРє., РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃС‚РѕРї РІ " + __StopSize + " РїСѓРЅРєС‚РѕРІ");
+   Print("OK Проверяем каждые " + __SecondsWait + " сек., при необходимости устанавливаем стоп в " + __StopSize + " пунктов");
 
    return(INIT_SUCCEEDED);
 }
@@ -96,7 +96,7 @@ void WaitForStop()
    if(secondsLeft <= 0)
    {
       state = STATE_SET_STOP;
-      Print("WARN РќР°Р№РґРµРЅР° РїРѕР·РёС†РёСЏ Р±РµР· СЃС‚РѕРїР°, СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃС‚РѕРї");
+      Print("WARN Найдена позиция без стопа, устанавливаем стоп");
       return;
    }
    
@@ -143,7 +143,7 @@ void SetStop()
 
 bool UpdatePositionStopTakeProfit(double stopPrice, double takeProfit)
 {
-   // РїРѕРґРіРѕС‚РѕРІРёРј СЃС‚СЂСѓРєС‚СѓСЂС‹ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ РґР°РЅРЅС‹С…
+   // подготовим структуры для хранения данных
    
    MqlTradeRequest request;
    ZeroMemory(request);
@@ -154,28 +154,28 @@ bool UpdatePositionStopTakeProfit(double stopPrice, double takeProfit)
    MqlTradeCheckResult checkResult;
    ZeroMemory(checkResult);   
    
-   // РёРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј Р·Р°РїСЂРѕСЃ
+   // инициализируем запрос
    
    request.action = TRADE_ACTION_SLTP;
    request.symbol = _Symbol;
    request.sl = stopPrice;
-   request.deviation = __Deviation; // РїСЂРѕСЃРєР°Р»СЊР·С‹РІР°РЅРёРµ
+   request.deviation = __Deviation; // проскальзывание
    request.tp = takeProfit;
    
-   Print("РћРљ РїСЂРѕР±СѓРµРј СѓСЃС‚Р°РЅРѕРІРёС‚СЊ СЃС‚РѕРї РѕСЂРґРµСЂ РїРѕ С†РµРЅРµ " + stopPrice);
+   Print("ОК пробуем установить стоп ордер по цене " + stopPrice);
    
    if(OrderCheck(request, checkResult))
    {
       if(OrderSend(request, result))
       {
-         Print("OK СЃС‚РѕРї РѕСЂРґРµСЂ СѓСЃС‚Р°РЅРѕРІР»РµРЅ РїРѕ С†РµРЅРµ " + stopPrice);
+         Print("OK стоп ордер установлен по цене " + stopPrice);
          return true;
       }
       else
       {
          Print(
-            "ERR РћС€РёР±РєР° СѓСЃС‚Р°РЅРѕРІРєРё СЃС‚РѕРї-РѕСЂРґРµСЂР°, РєРѕРјРјРµРЅС‚Р°СЂРёР№: " + result.comment +
-            ", РєРѕРґ РѕС€РёР±РєРё: " + GetLastError() + 
+            "ERR Ошибка установки стоп-ордера, комментарий: " + result.comment +
+            ", код ошибки: " + GetLastError() + 
             ", retcode: " + result.retcode
             );
       }
@@ -183,8 +183,8 @@ bool UpdatePositionStopTakeProfit(double stopPrice, double takeProfit)
    else
    {
       Print(
-         "ERR РћС€РёР±РєР° РїСЂРѕРІРµСЂРєРё РЅР° СѓСЃС‚Р°РЅРѕРІРєСѓ СЃС‚РѕРї-РѕСЂРґРµСЂР°, РєРѕРјРјРµРЅС‚Р°СЂРёР№: " + checkResult.comment +
-         ", РєРѕРґ РѕС€РёР±РєРё: " + GetLastError() +
+         "ERR Ошибка проверки на установку стоп-ордера, комментарий: " + checkResult.comment +
+         ", код ошибки: " + GetLastError() +
          ", retcode: " + checkResult.retcode
          );
    }
@@ -220,13 +220,13 @@ double NormalizeByTickSize(double value)
 {
    double result = 0;
 
-   // СѓР±РёСЂР°РµРј РґСЂРѕР±РЅСѓСЋ С‡Р°СЃС‚СЊ   
+   // убираем дробную часть   
    result = NormalizeDouble(value, _Digits);
 
-   // РїРѕР»СѓС‡Р°РµРј СЂР°Р·РјРµСЂ С‚РёРєР° РґР»СЏ РёРЅСЃС‚СЂСѓРјРµРЅС‚Р°
+   // получаем размер тика для инструмента
    double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
 
-   // СѓР±РёСЂР°РµРј РѕСЃС‚Р°С‚РѕРє РѕС‚ РґРµР»РµРЅРёСЏ РЅР° СЂР°Р·РјРµСЂ С‚РёРєР°
+   // убираем остаток от деления на размер тика
    result = result - fmod(result, tickSize);
    
    return result;
