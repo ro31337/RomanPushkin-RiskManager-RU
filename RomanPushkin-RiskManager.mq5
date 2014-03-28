@@ -20,7 +20,7 @@ enum StrategyState { STATE_LOOK_FOR_POSITION, STATE_WAIT_FOR_STOP, STATE_SET_STO
 int OnInit()
 {
    EventSetTimer(1);
-   Print("OK Проверяем каждые " + __SecondsWait + ", при необходимости устанавливаем стоп в " + __StopSize + " пунктов");
+   Print("OK Проверяем каждые " + __SecondsWait + " сек., при необходимости устанавливаем стоп в " + __StopSize + " пунктов");
 
    return(INIT_SUCCEEDED);
 }
